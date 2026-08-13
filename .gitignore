@@ -1,0 +1,18 @@
+# Obsidian 工作区状态（跨设备频繁变化，不入库）
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspace-desktop.json
+
+# 插件数据文件（可能包含密码/令牌，不入库）
+.obsidian/plugins/*/data.json
+
+# Obsidian Git 临时数据
+.obsidian-git-data/
+
+# 系统与临时文件
+.trash/
+*.tmp
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini
