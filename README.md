@@ -1,54 +1,48 @@
-# Obsidian 知识库
+# Obsidian 工程知识库
 
-基于 Obsidian 的个人知识库，采用"双电脑 VPS 中转同步 + GitHub 自动备份"架构。
+面向嵌入式硬件工程师的个人知识库：**工作日志记录过程，主题知识沉淀经验，项目档案保留复盘**，通过双链和 MOC 把零散知识点连接成网。
 
 ## 目录结构
 
 | 目录 | 用途 |
 | ---- | ---- |
-| `00-Inbox` | 收件箱：新笔记、未整理的临时内容先放这里 |
-| `10-笔记区` | 主题笔记区，按需创建子目录（如 `日记`、`编程`、`读书`） |
+| `00-Inbox` | 收件箱：临时记录、未整理的碎片内容 |
+| `10-工作日志` | 每日工作日志（日记命令生成，按周回顾提炼） |
+| `20-项目` | 项目档案：项目索引 + 按需创建的 `<项目名>/` 目录 |
+| `30-知识库` | 主题知识：嵌入式开发 / Linux应用开发 / 硬件设计 / 电力电子 / 调试与认证，各含 MOC 索引 |
+| `40-资源库` | 手册、标准、datasheet、外部链接（按主题建子目录） |
 | `90-Attachments` | 附件统一存放（图片、PDF 等） |
-| `99-Templates` | 笔记模板（通用笔记、日记） |
+| `99-Templates` | 模板：工作日志、知识笔记、项目首页、问题复盘、通用笔记 |
 
-## 同步与备份架构
+## 工作流：捕捉 → 沉淀 → 提炼 → 连接
 
-- **实时同步**：电脑 A（本机）与电脑 B（工作机）均通过 **Remotely Save** 插件直连 VPS 上的 WebDAV 服务（HTTPS），两台电脑互不直接依赖 GitHub。
-- **备份归档**：VPS 的数据目录同时是 git 仓库，由 systemd 定时器每 30 分钟自动 commit + push 到 GitHub **私有仓库**（`my_obsidian`）。
-- **推送职责**：GitHub 的推送**唯一由 VPS 完成**；电脑 A 保留本地 git 历史但已停止 push，电脑 B 不装 git 插件。
+1. **捕捉**：随时把想法、问题、临时内容丢进 `00-Inbox` 或当天工作日志。
+2. **沉淀**：工作日志记录过程（今日要事、遇到的问题、调试记录、今日收获）；项目用项目首页 + 问题复盘。
+3. **提炼**：每周回顾工作日志，把可复用的原理、经验、踩坑整理成**知识笔记**，放入 `30-知识库` 对应主题。
+4. **连接**：每条笔记通过 `[[链接]]` 关联相关笔记和 MOC；MOC 是主题的总入口。
 
-## 电脑 A（本机）状态
+## 命名规范
 
-- 已修复并启用 Remotely Save（0.5.25），插件 `data.json` 已预置忽略规则：
-  - `.git`、`.trash`、`.obsidian/workspace*.json`、`.obsidian/plugins/*/data.json`
-- 首次使用：设置 → Remotely Save → 远程服务选 **WebDAV**，填入 VPS 地址、账号 `obsidian`、密码（见 VPS 上 `/etc/obsidian-webdav/credentials.txt`），点击"检查连接"并做一次全量同步。
-- git：本机保留 `.git` 历史用于本地回滚，已移除 GitHub remote；如需本地提交可用 Obsidian Git 插件的"Commit"命令，但**不要 push**（避免与 VPS 备份冲突）。
+- 笔记名用"对象-动作-结果"式，如 `I2C-通信故障排查`、`Buck-电感选型`。
+- 日期统一 `YYYY-MM-DD`；日志文件名由日记功能自动生成。
+- 主题知识笔记放在对应主题目录，标题前可加类型前缀（如 `示例-`、`原理-`、`踩坑-`）。
 
-## 电脑 B（工作机，国内网）首次配置
+## 同步约定（电脑 A / 电脑 B）
 
-1. 安装 Obsidian，新建空库，路径 `D:\Obsidian\myObsidian`。
-2. 从电脑 A 复制整个 `remotely-save` 插件目录到 B 的 `.obsidian\plugins\remotely-save`（B 访问 GitHub 慢，不自行下载），并确认 `.obsidian\community-plugins.json` 含 `"remotely-save"`。
-3. 打开 Obsidian 启用 Remotely Save，填与 A 相同的 WebDAV 地址、账号、密码。
-4. 首次打开自动全量下载 VPS 上的文件。**不要**安装 Obsidian Git，也不要初始化 git 仓库。
-
-## GitHub 备份（VPS 负责）
-
-- VPS 上已运行 `deploy-git-sync.sh`：数据目录 `/srv/obsidian-vault` 内每 30 分钟自动 `git add -A && git commit && git push origin main`。
-- 手动备份：在 VPS 执行 `sudo bash /usr/local/bin/obsidian-git-sync.sh`。
-- 查看备份日志：`journalctl -u obsidian-git-sync -n 30 --no-pager`。
-
-> 注意：`data.json`（含同步密码/令牌）与 `workspace*.json` 已由 `.gitignore` 和 Remotely Save 忽略规则排除，不会进入仓库。请勿把任何密码、令牌写入笔记。
+- A、B 通过 Remotely Save 双向同步到 VPS，可随时手动同步（启动时 / 定时可选）。
+- **同一篇笔记只在一台电脑上编辑**；切换设备前先手动同步一次，避免冲突。
+- 冲突策略为"保留较新"；如经常双端编辑同一文件，可在 Remotely Save 中改为"两端都保留"。
+- 手机端暂未接入。
 
 ## Codex 使用约定
 
-- Codex 以 `D:\Obsidian\myObsidian` 为工作目录，只操作本库文件。
-- 常规任务：批量整理/重命名、生成 MOC 与索引、按模板建笔记、统一 frontmatter、清理归档。
+- Codex 以本目录为工作目录，直接读写 vault 文件。
+- 常规任务：批量整理/重命名、生成与更新 MOC、按模板建笔记、统一 frontmatter、清理归档。
 - 不修改 `.obsidian` 中的非必要配置；写文件遵循 `99-Templates` 模板与命名规范。
-- 同步交给 Remotely Save、GitHub 备份交给 VPS 自动完成。
+- 同步由 Remotely Save 完成，GitHub 备份由 VPS 自动完成（VPS 每 30 分钟 commit + push）。
 
 ## 安全提醒
 
-- VPS 只开放 HTTPS 端口，WebDAV 使用独立账号与强密码。
-- GitHub 仓库必须为 private；PAT 使用 fine-grained 且仅授权该仓库。
-- 定期（如每月）从 GitHub clone 一次，验证备份可恢复。
-- VPS 部署脚本与详细指南由 Codex 交付（`Obsidian-VPS-Deploy` 目录），按其中说明执行。
+- 密码、令牌、密钥**不要写进笔记**；`data.json`、`workspace*.json` 已被忽略，不会入库。
+- GitHub 仓库保持 private；VPS 凭据仅存于 VPS 本地。
+- 定期（如每月）从 GitHub clone 验证备份可恢复。
